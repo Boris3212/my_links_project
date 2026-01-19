@@ -1,0 +1,17 @@
+{
+    "name": "kasur/my_links_project",
+    "autoload": {
+        "psr-4": {
+            "Kasur\\MyLinksProject\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Boris Kasurkin",
+            "email": "email@example.com"
+        }
+    ],
+    "require": {
+        "phpoffice/phpspreadsheet": "^5.4"
+    }
+}
