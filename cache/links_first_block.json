@@ -1,0 +1,42 @@
+[
+    {
+        "url": "https:\/\/amazon.com",
+        "name": "Amazon"
+    },
+    {
+        "url": "https:\/\/bing.com",
+        "name": "Bing"
+    },
+    {
+        "url": "https:\/\/instagram.com",
+        "name": "Instagram"
+    },
+    {
+        "url": "https:\/\/linkedin.com",
+        "name": "Linkedin"
+    },
+    {
+        "url": "https:\/\/openai.com",
+        "name": "Openai"
+    },
+    {
+        "url": "https:\/\/reddit.com",
+        "name": "Reddit"
+    },
+    {
+        "url": "https:\/\/telegram.org",
+        "name": "Telegram"
+    },
+    {
+        "url": "https:\/\/twitter.com",
+        "name": "Twitter"
+    },
+    {
+        "url": "https:\/\/whatsapp.com",
+        "name": "Whatsapp"
+    },
+    {
+        "url": "https:\/\/yahoo.com",
+        "name": "Yahoo"
+    }
+]
