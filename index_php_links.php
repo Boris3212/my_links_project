@@ -1,120 +1,183 @@
 <?php
+
 require 'vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-class LinkManager {
-    private string $xlsxFile;
-    private string $cacheDir = __DIR__ . '/cache';
-    private string $cacheFile;
-    private int $linksAmount;
-    private array $links = [];
+class LinkManager
+{
+    private const CACHE_DIR = __DIR__ . '/cache';
 
-    public function __construct(string $xlsxFile, int $linksAmount = 10, string $cacheKey = 'default') {
-        $this->xlsxFile = $xlsxFile;
-        $this->linksAmount = $linksAmount;
+    /* ================= INIT ================= */
 
-        if (!is_dir($this->cacheDir)) {
-            mkdir($this->cacheDir, 0777, true);
+    public static function init(): void
+    {
+        if (!is_dir(self::CACHE_DIR)) {
+            mkdir(self::CACHE_DIR, 0777, true);
+        }
+    }
+
+    /* ================= PUBLIC ================= */
+
+    public static function getLinks(
+        string $xlsxFile,
+        int $limit = 10
+    ): array {
+
+        self::init();
+
+        $cacheFile = self::getCacheFile();
+
+        // 1. Если есть JSON → читаем
+        if (self::cacheExists($cacheFile)) {
+            return self::readCache($cacheFile);
         }
 
-        $this->cacheFile = $this->cacheDir . "/links_{$cacheKey}.json";
+        // 2. Иначе читаем Excel
+        $links = self::readExcel($xlsxFile);
 
-        $this->loadLinks();
+        // 3. Берём случайные
+        $links = self::pickRandom($links, $limit);
+
+        // 4. Пишем JSON
+        self::writeCache($cacheFile, $links);
+
+        return $links;
     }
 
-    // =================== Методы ===================
-    private function safeString(mixed $value): string {
-        if (is_array($value)) $value = reset($value);
-        return trim((string)$value);
+    /* ================= CACHE ================= */
+
+    private static function getCacheFile(): string
+    {
+        $uri = $_SERVER['REQUEST_URI'] ?? 'cli';
+
+        $hash = md5($uri);
+
+        return self::CACHE_DIR . "/{$hash}.json";
     }
 
-    private function loadLinks(): void {
-        // Если кэш существует — читаем из него
-        if ($this->cacheExists()) {
-            $this->links = $this->readCache();
-            return;
+    private static function cacheExists(string $file): bool
+    {
+        return file_exists($file);
+    }
+
+    private static function readCache(string $file): array
+    {
+        return json_decode(file_get_contents($file), true) ?? [];
+    }
+
+    private static function writeCache(string $file, array $data): void
+    {
+        file_put_contents(
+            $file,
+            json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+        );
+    }
+
+    /* ================= EXCEL ================= */
+
+    private static function readExcel(string $file): array
+    {
+        if (!file_exists($file)) {
+            die("Excel не найден: {$file}");
         }
 
-        // Иначе читаем Excel
-        $allLinks = $this->readExcel();
-
-        // Берём случайные ссылки
-        $this->links = $this->pickRandomLinks($allLinks, $this->linksAmount);
-
-        // Сохраняем в кэш
-        $this->writeCache($this->links);
-    }
-
-    private function cacheExists(): bool {
-        return file_exists($this->cacheFile);
-    }
-
-    private function readCache(): array {
-        return json_decode(file_get_contents($this->cacheFile), true) ?: [];
-    }
-
-    private function writeCache(array $data): void {
-        file_put_contents($this->cacheFile, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-    }
-
-    private function readExcel(): array {
-        if (!file_exists($this->xlsxFile)) {
-            die("Файл {$this->xlsxFile} не найден!");
-        }
-
-        $spreadsheet = IOFactory::load($this->xlsxFile);
+        $spreadsheet = IOFactory::load($file);
         $sheet = $spreadsheet->getActiveSheet();
 
-        $allLinks = [];
+        $links = [];
+
         foreach ($sheet->getRowIterator() as $row) {
+
             $cells = [];
+
             foreach ($row->getCellIterator() as $cell) {
-                $cells[] = $this->safeString($cell->getCalculatedValue());
+                $cells[] = self::safeString(
+                    $cell->getCalculatedValue()
+                );
             }
 
             if (!empty($cells[0]) && !empty($cells[1])) {
-                $allLinks[] = ['url' => $cells[0], 'name' => $cells[1]];
+
+                $links[] = [
+                    'url'  => $cells[0],
+                    'name' => $cells[1]
+                ];
             }
         }
 
-        return $allLinks;
+        return $links;
     }
 
-    private function pickRandomLinks(array $allLinks, int $count): array {
-        $count = min($count, count($allLinks));
-        $keys = array_rand($allLinks, $count);
-        if (!is_array($keys)) $keys = [$keys];
+    /* ================= HELPERS ================= */
 
-        $random = [];
-        foreach ($keys as $k) $random[] = $allLinks[$k];
-
-        // Сортировка по названию
-        usort($random, fn($a, $b) => mb_strtolower($a['name']) <=> mb_strtolower($b['name']));
-
-        // Первая буква заглавная
-        foreach ($random as &$link) {
-            $link['name'] = mb_strtoupper(mb_substr($link['name'], 0, 1)) . mb_substr($link['name'], 1);
+    private static function safeString(mixed $value): string
+    {
+        if (is_array($value)) {
+            $value = reset($value);
         }
-        unset($link);
 
-        return $random;
+        return trim((string)$value);
     }
 
-    // =================== Вывод HTML ===================
-    public function renderHtml(): void {
-        $links = $this->links;
+    private static function pickRandom(array $data, int $count): array
+    {
+        $count = min($count, count($data));
+
+        $keys = array_rand($data, $count);
+
+        if (!is_array($keys)) {
+            $keys = [$keys];
+        }
+
+        $result = [];
+
+        foreach ($keys as $k) {
+            $result[] = $data[$k];
+        }
+
+        // Сортировка
+        usort(
+            $result,
+            fn($a, $b) =>
+                mb_strtolower($a['name'])
+                <=>
+                mb_strtolower($b['name'])
+        );
+
+        // Первая буква большая
+        foreach ($result as &$link) {
+
+            $link['name'] =
+                mb_strtoupper(mb_substr($link['name'], 0, 1)) .
+                mb_substr($link['name'], 1);
+        }
+
+        return $result;
+    }
+
+    /* ================= VIEW ================= */
+
+    public static function render(array $links): void
+    {
         ?>
 <ul>
 <?php foreach ($links as $link): ?>
-    <li><a href="<?= htmlspecialchars($link['url'], ENT_QUOTES | ENT_HTML5) ?>" target="_blank"><?= htmlspecialchars($link['name'], ENT_QUOTES | ENT_HTML5) ?></a></li>
+    <li>
+        <a href="<?= htmlspecialchars($link['url']) ?>" target="_blank">
+            <?= htmlspecialchars($link['name']) ?>
+        </a>
+    </li>
 <?php endforeach; ?>
 </ul>
 <?php
     }
+    
 }
 
-// =================== Использование ===================
 
-// 10 случайных ссылок
-$manager = new LinkManager('links.xlsx', 10, 'first_block');
-$manager->renderHtml();
+
+
+
+$links = LinkManager::getLinks('links.xlsx', 10);
+
+LinkManager::render($links);

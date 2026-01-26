@@ -1,0 +1,16 @@
+# Composer dependencies
+/vendor/
+
+# Project cache
+/cache/
+
+# IDE
+.idea/
+.vscode/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -1,0 +1,50 @@
+[
+    {
+        "url": "https:\/\/amazon.com",
+        "name": "Amazon"
+    },
+    {
+        "url": "https:\/\/apple.com",
+        "name": "Apple"
+    },
+    {
+        "url": "https:\/\/discord.com",
+        "name": "Discord"
+    },
+    {
+        "url": "https:\/\/facebook.com",
+        "name": "Facebook"
+    },
+    {
+        "url": "https:\/\/github.com",
+        "name": "Github"
+    },
+    {
+        "url": "https:\/\/instagram.com",
+        "name": "Instagram"
+    },
+    {
+        "url": "https:\/\/linkedin.com",
+        "name": "Linkedin"
+    },
+    {
+        "url": "https:\/\/microsoft.com",
+        "name": "Microsoft"
+    },
+    {
+        "url": "https:\/\/netflix.com",
+        "name": "Netflix"
+    },
+    {
+        "url": "https:\/\/openai.com",
+        "name": "Openai"
+    },
+    {
+        "url": "https:\/\/wikipedia.org",
+        "name": "Wikipedia"
+    },
+    {
+        "url": "https:\/\/youtube.com",
+        "name": "Youtube"
+    }
+]
